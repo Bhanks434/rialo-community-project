@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Dodge oracles, fetch truth!">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>gRialo Runner 🫡 | @RialoHQ</title>
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #00ff88;
+            font-family: monospace;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #share-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background-color: rgba(0, 255, 136, 0.8);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: none;
+            text-decoration: none;
+        }
+
+        #share-btn:hover {
+            background-color: #00ff88;
+        }
+
+        #leaderboard {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff88;
+            padding: 20px;
+            text-align: center;
+            display: none;
+            z-index: 101;
+            min-width: 300px;
+        }
+
+        #leaderboard h2 {
+            margin-top: 0;
+            color: #00ff88;
+        }
+
+        #leaderboard ol {
+            text-align: left;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        #leaderboard li {
+            margin-bottom: 5px;
+        }
+
+        #handle-input {
+            background: #333;
+            border: 1px solid #00ff88;
+            color: #fff;
+            padding: 5px;
+            font-family: monospace;
+            margin-bottom: 10px;
+            width: 80%;
+        }
+
+        .btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 5px 15px;
+            font-family: monospace;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+    <link rel="manifest"
+        href="data:application/json;base64,ewogICJuYW1lIjogImdSaWFmbyBSdW5uZXIiLAogICJzaG9ydF9uYW1lIjogImdSaWFmbyIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMDAwMDAwIiwKICAidGhlbWVfY29sb3IiOiAiIzAwMDAwMCIKfQ==">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+</head>
+
+<body>
+    <a id="share-btn" target="_blank">Share on X 🫡</a>
+
+    <div id="leaderboard">
+        <h2>GLOBAL LEADERBOARD</h2>
+        <ol id="score-list">Loading...</ol>
+        <div id="input-area">
+            <input type="text" id="handle-input" placeholder="@TwitterHandle" maxlength="15">
+            <br>
+            <button class="btn" onclick="saveScore()">Save Score</button>
+        </div>
+        <button class="btn" onclick="closeLeaderboard()">Play Again</button>
+    </div>
+
+    <script>
+        const bgBase64 = "data:image/jpeg;base64,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";
+
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 400,
+            backgroundColor: '#000000',
+            scale: {
+                mode: Phaser.Scale.FIT,
+                autoCenter: Phaser.Scale.CENTER_BOTH
+            },
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 900 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        let player;
+        let ground;
+        let obstacles;
+        let collectibles;
+        let cursors;
+        let score = 0; // Points
+        let distance = 0; // Meters
+        let scoreText;
+        let distanceText;
+        let highScoreText;
+        let gameSpeed = 350;
+        let isGameOver = false;
+        let obstacleTimer;
+        let collectibleTimer;
+        let scoreTimer;
+        let bgTile;
+
+        // Leaderboard Data
+        // Leaderboard Data
+        let savedHandle = localStorage.getItem('gRialoHandle') || '';
+
+        function preload() {
+            this.load.image('bg', bgBase64);
+        }
+
+        function create() {
+            // 1. Background (TileSprite for no zoom)
+            // Original image is 400x400. We want to tile it horizontally.
+            // Height 400 fits perfectly.
+            bgTile = this.add.tileSprite(400, 200, 800, 400, 'bg');
+
+            // 2. Ground
+            const groundGraphics = this.make.graphics({ x: 0, y: 0, add: false });
+            groundGraphics.fillStyle(0x333333);
+            groundGraphics.fillRect(0, 0, 800, 50);
+            groundGraphics.generateTexture('groundTexture', 800, 50);
+
+            ground = this.add.tileSprite(400, 375, 800, 50, 'groundTexture');
+            this.physics.add.existing(ground, true);
+
+            // 3. Player
+            if (!this.textures.exists('birdTexture')) {
+                const g = this.make.graphics({ x: 0, y: 0, add: false });
+                g.fillStyle(0xffcc00);
+                g.fillEllipse(20, 30, 40, 30);
+                g.fillStyle(0xffffff);
+                g.fillEllipse(20, 30, 20, 15);
+                g.fillStyle(0xff6600);
+                g.fillTriangle(35, 25, 35, 35, 45, 30);
+                g.fillStyle(0x000000);
+                g.fillCircle(30, 25, 3);
+                g.generateTexture('birdTexture', 50, 60);
+            }
+
+            player = this.physics.add.sprite(100, 200, 'birdTexture');
+            player.setOrigin(0.5);
+            player.setBounce(0.1);
+            player.setCollideWorldBounds(true);
+            player.body.setSize(30, 30);
+
+            this.physics.add.collider(player, ground);
+
+            // 4. Groups
+            obstacles = this.physics.add.group();
+            collectibles = this.physics.add.group();
+
+            // 5. Controls
+            cursors = this.input.keyboard.createCursorKeys();
+            this.input.keyboard.on('keydown-SPACE', () => { if (isGameOver && document.getElementById('leaderboard').style.display === 'none') restartGame.call(this); });
+            this.input.on('pointerdown', () => { if (isGameOver && document.getElementById('leaderboard').style.display === 'none') restartGame.call(this); });
+
+            // 6. UI
+            const uiStyle = { font: '24px monospace', fill: '#00ff88', stroke: '#000', strokeThickness: 2 };
+
+            // Header Text
+            this.add.text(400, 30, 'Rethink. Rebuild. Rialo.', {
+                font: 'bold 28px monospace',
+                fill: '#ffffff',
+                stroke: '#000',
+                strokeThickness: 4
+            }).setOrigin(0.5).setScrollFactor(0);
+
+            distanceText = this.add.text(20, 60, 'Dist: 0m', uiStyle).setScrollFactor(0);
+            scoreText = this.add.text(20, 90, 'Score: 0', uiStyle).setScrollFactor(0);
+
+            highScoreText = this.add.text(20, 120, 'High: -', uiStyle).setScrollFactor(0);
+
+            // 7. Timers
+            spawnObstacle.call(this);
+            spawnCollectible.call(this);
+
+            scoreTimer = this.time.addEvent({
+                delay: 100,
+                callback: updateScore,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Colliders
+            this.physics.add.overlap(player, obstacles, hitObstacle, null, this);
+            this.physics.add.overlap(player, collectibles, collectGem, null, this);
+        }
+
+        function update(time, delta) {
+            if (isGameOver) return;
+
+            // Flying Controls
+            if (cursors.up.isDown || cursors.space.isDown || this.input.activePointer.isDown) {
+                player.setVelocityY(-450);
+            } else if (cursors.down.isDown) {
+                player.setVelocityY(500);
+            }
+
+            gameSpeed += 0.5;
+            ground.tilePositionX += gameSpeed * 0.016;
+            bgTile.tilePositionX += gameSpeed * 0.005; // Parallax BG
+
+            obstacles.children.iterate(function (child) {
+                if (child) {
+                    child.setVelocityX(-gameSpeed);
+                    if (child.x < -100) {
+                        child.destroy();
+                    }
+                }
+            });
+
+            collectibles.children.iterate(function (child) {
+                if (child) {
+                    child.setVelocityX(-gameSpeed);
+                    if (child.x < -50) {
+                        child.destroy();
+                    }
+                }
+            });
+        }
+
+        function spawnObstacle() {
+            if (isGameOver) return;
+
+            const w = Phaser.Math.Between(30, 60);
+            const h = Phaser.Math.Between(40, 150);
+            const key = 'building_' + w + '_' + h;
+
+            if (!this.textures.exists(key)) {
+                const g = this.make.graphics({ x: 0, y: 0, add: false });
+                g.fillStyle(0x555577);
+                g.fillRect(0, 0, w, h);
+                g.fillStyle(0x333355);
+                g.fillRect(w, 10, 10, h - 10);
+                g.fillRect(w, 0, 10, h);
+                g.fillStyle(0x777799);
+                g.fillRect(0, 0, w + 10, 10);
+                g.fillStyle(0xffffaa);
+                for (let i = 20; i < h - 10; i += 20) {
+                    for (let j = 5; j < w - 5; j += 15) {
+                        if (Math.random() > 0.3) g.fillRect(j, i, 8, 12);
+                    }
+                }
+                g.generateTexture(key, w + 10, h);
+            }
+
+            let yPos = 350 - h / 2;
+            if (Math.random() > 0.7) {
+                yPos -= Phaser.Math.Between(50, 100);
+            }
+
+            const obstacle = obstacles.create(850, yPos, key);
+            obstacle.setImmovable(true);
+            obstacle.body.allowGravity = false;
+            obstacle.setVelocityX(-gameSpeed);
+            obstacle.body.setSize(w, h);
+            obstacle.body.setOffset(0, 0);
+
+            let delay = 1500 - (gameSpeed / 10);
+            if (delay < 600) delay = 600;
+            delay += Phaser.Math.Between(0, 500);
+
+            obstacleTimer = this.time.addEvent({
+                delay: delay,
+                callback: spawnObstacle,
+                callbackScope: this,
+                loop: false
+            });
+        }
+
+        function spawnCollectible() {
+            if (isGameOver) return;
+
+            if (!this.textures.exists('circleTexture')) {
+                const g = this.make.graphics({ x: 0, y: 0, add: false });
+                g.fillStyle(0xffffff);
+                g.fillCircle(15, 15, 15);
+                g.generateTexture('circleTexture', 30, 30);
+            }
+
+            const y = Phaser.Math.Between(150, 300);
+            const collect = collectibles.create(850, y, 'circleTexture');
+            collect.setTint(0x4488ff);
+            collect.body.allowGravity = false;
+            collect.setVelocityX(-gameSpeed);
+            collect.body.setCircle(15);
+
+            collectibleTimer = this.time.addEvent({
+                delay: 3000,
+                callback: spawnCollectible,
+                callbackScope: this,
+                loop: false
+            });
+        }
+
+        function updateScore() {
+            if (isGameOver) return;
+            distance += 1;
+            score += 10; // Passive points
+            distanceText.setText('Dist: ' + distance + 'm');
+            scoreText.setText('Score: ' + score);
+        }
+
+        function collectGem(player, gem) {
+            gem.destroy();
+            score += 500; // Gem points
+            scoreText.setText('Score: ' + score);
+
+            if (!this.textures.exists('whitePixel')) {
+                const g = this.make.graphics({ x: 0, y: 0, add: false });
+                g.fillStyle(0xffffff);
+                g.fillRect(0, 0, 1, 1);
+                g.generateTexture('whitePixel', 1, 1);
+            }
+
+            const particles = this.add.particles(gem.x, gem.y, 'whitePixel', {
+                speed: 100,
+                scale: { start: 5, end: 0 },
+                blendMode: 'ADD',
+                lifespan: 500,
+                tint: 0x4488ff,
+                quantity: 10
+            });
+            this.time.delayedCall(500, () => particles.destroy());
+        }
+
+        function hitObstacle(player, obstacle) {
+            if (isGameOver) return;
+
+            isGameOver = true;
+            this.physics.pause();
+            player.setTint(0xff0000);
+
+            if (obstacleTimer) obstacleTimer.remove();
+            if (collectibleTimer) collectibleTimer.remove();
+            if (scoreTimer) scoreTimer.remove();
+
+            // Show Game Over
+            const goText = this.add.text(400, 200, 'Game Over!\nScore: ' + score, {
+                font: '40px monospace',
+                fill: '#ff0000',
+                align: 'center',
+                stroke: '#000',
+                strokeThickness: 4
+            }).setOrigin(0.5).setScrollFactor(0);
+
+            // Show Share Button
+            const shareBtn = document.getElementById('share-btn');
+            const tweetText = `Scored ${score} points in gRialo Runner! Dodge oracles, fetch truth. Rethink. Rebuild. 🫡 @RialoHQ #gRialo`;
+            const url = encodeURIComponent(window.location.href);
+            shareBtn.href = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${url}`;
+            shareBtn.style.display = 'block';
+
+            // Show Leaderboard
+            showLeaderboard(score);
+        }
+
+        window.showLeaderboard = async function (currentScore) {
+            const lbDiv = document.getElementById('leaderboard');
+            const list = document.getElementById('score-list');
+            const inputArea = document.getElementById('input-area');
+            const handleInput = document.getElementById('handle-input');
+
+            list.innerHTML = 'Loading...';
+            lbDiv.style.display = 'block';
+
+            // Fetch Global Scores
+            try {
+                const res = await fetch('/api/leaderboard');
+                const scores = await res.json();
+
+                list.innerHTML = '';
+                scores.forEach(entry => {
+                    const li = document.createElement('li');
+                    li.textContent = `${entry.handle}: ${entry.score}`;
+                    list.appendChild(li);
+                });
+            } catch (err) {
+                list.innerHTML = 'Error loading scores.';
+                console.error(err);
+            }
+
+            if (currentScore !== null) {
+                // Game Over Mode
+                inputArea.style.display = 'block';
+                if (savedHandle) {
+                    handleInput.value = savedHandle;
+                }
+            } else {
+                // View Only Mode
+                inputArea.style.display = 'none';
+            }
+        };
+
+        window.saveScore = async function () {
+            const handle = document.getElementById('handle-input').value.trim() || 'Anon';
+            savedHandle = handle;
+            localStorage.setItem('gRialoHandle', savedHandle);
+
+            try {
+                const res = await fetch('/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ handle, score })
+                });
+
+                if (res.ok) {
+                    showLeaderboard(null); // Switch to view mode
+                } else {
+                    alert('Failed to save score.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error saving score.');
+            }
+        };
+
+        window.closeLeaderboard = function () {
+            document.getElementById('leaderboard').style.display = 'none';
+            restartGame.call(game.scene.scenes[0]);
+        };
+
+        function restartGame() {
+            document.getElementById('share-btn').style.display = 'none';
+            document.getElementById('leaderboard').style.display = 'none';
+            isGameOver = false;
+            score = 0;
+            distance = 0;
+            gameSpeed = 350;
+            this.scene.restart();
+        }
+    </script>
+</body>
+
+</html>
