@@ -155,8 +155,8 @@
         let collectibleTimer;
         let scoreTimer;
         let bgTile;
+        let topPlayerText;
 
-        // Leaderboard Data
         // Leaderboard Data
         let savedHandle = localStorage.getItem('gRialoHandle') || '';
 
@@ -211,7 +211,7 @@
             this.input.on('pointerdown', () => { if (isGameOver && document.getElementById('leaderboard').style.display === 'none') restartGame.call(this); });
 
             // 6. UI
-            const uiStyle = { font: '24px monospace', fill: '#00ff88', stroke: '#000', strokeThickness: 2 };
+            const uiStyle = { font: '18px monospace', fill: '#00ff88', stroke: '#000', strokeThickness: 2 };
 
             // Header Text
             this.add.text(400, 30, 'Rethink. Rebuild. Rialo.', {
@@ -222,9 +222,12 @@
             }).setOrigin(0.5).setScrollFactor(0);
 
             distanceText = this.add.text(20, 60, 'Dist: 0m', uiStyle).setScrollFactor(0);
-            scoreText = this.add.text(20, 90, 'Score: 0', uiStyle).setScrollFactor(0);
+            scoreText = this.add.text(20, 85, 'Score: 0', uiStyle).setScrollFactor(0);
 
-            highScoreText = this.add.text(20, 120, 'High: -', uiStyle).setScrollFactor(0);
+            topPlayerText = this.add.text(20, 110, 'Top: Loading...', uiStyle).setScrollFactor(0);
+
+            // Fetch top player
+            fetchTopPlayer.call(this);
 
             // 7. Timers
             spawnObstacle.call(this);
@@ -240,6 +243,23 @@
             // Colliders
             this.physics.add.overlap(player, obstacles, hitObstacle, null, this);
             this.physics.add.overlap(player, collectibles, collectGem, null, this);
+        }
+
+        async function fetchTopPlayer() {
+            try {
+                const res = await fetch('/api/leaderboard');
+                const scores = await res.json();
+
+                if (scores && scores.length > 0) {
+                    const topPlayer = scores[0];
+                    topPlayerText.setText(`Top: ${topPlayer.handle} - ${topPlayer.score}`);
+                } else {
+                    topPlayerText.setText('Top: No scores yet');
+                }
+            } catch (err) {
+                console.error('Error fetching top player:', err);
+                topPlayerText.setText('Top: Error');
+            }
         }
 
         function update(time, delta) {
@@ -300,9 +320,20 @@
                 g.generateTexture(key, w + 10, h);
             }
 
-            let yPos = 350 - h / 2;
-            if (Math.random() > 0.7) {
-                yPos -= Phaser.Math.Between(50, 100);
+            let yPos;
+            // 40% chance to spawn at top, 60% at bottom
+            if (Math.random() > 0.6) {
+                // Top obstacle (hanging)
+                yPos = h / 2;
+                if (Math.random() > 0.5) {
+                    yPos += Phaser.Math.Between(20, 60);
+                }
+            } else {
+                // Bottom obstacle (ground-based)
+                yPos = 350 - h / 2;
+                if (Math.random() > 0.7) {
+                    yPos -= Phaser.Math.Between(50, 100);
+                }
             }
 
             const obstacle = obstacles.create(850, yPos, key);
@@ -420,6 +451,11 @@
             list.innerHTML = 'Loading...';
             lbDiv.style.display = 'block';
 
+            // Auto-save if user has saved handle
+            if (currentScore !== null && savedHandle) {
+                await autoSaveScore(savedHandle, currentScore);
+            }
+
             // Fetch Global Scores
             try {
                 const res = await fetch('/api/leaderboard');
@@ -438,15 +474,34 @@
 
             if (currentScore !== null) {
                 // Game Over Mode
-                inputArea.style.display = 'block';
                 if (savedHandle) {
-                    handleInput.value = savedHandle;
+                    // Already saved, hide input
+                    inputArea.style.display = 'none';
+                } else {
+                    // Need username
+                    inputArea.style.display = 'block';
                 }
             } else {
                 // View Only Mode
                 inputArea.style.display = 'none';
             }
         };
+
+        async function autoSaveScore(handle, scoreValue) {
+            try {
+                const res = await fetch('/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ handle, score: scoreValue })
+                });
+
+                if (!res.ok) {
+                    console.error('Failed to auto-save score');
+                }
+            } catch (err) {
+                console.error('Error auto-saving score:', err);
+            }
+        }
 
         window.saveScore = async function () {
             const handle = document.getElementById('handle-input').value.trim() || 'Anon';
